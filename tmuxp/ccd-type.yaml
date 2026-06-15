@@ -1,0 +1,12 @@
+session_name: CCD TYPE
+start_directory: ~/dev/smartpath/ccd/add typescript
+windows:
+  - window_name: panel
+    panes:
+      - cd ./ccd-panel && nvm use 18 && nvim .
+  - window_name: main
+    panes:
+      - cd main && nvm use 18 && nvim .
+  - window_name: report
+    panes:
+      - cd report && nvm use 18 && nvim .

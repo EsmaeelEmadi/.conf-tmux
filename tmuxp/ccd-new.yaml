@@ -1,0 +1,12 @@
+session_name: CCD NEW
+start_directory: ~/dev/smartpath/ccd-new
+windows:
+  - window_name: back
+    panes:
+      - cd ./back && nvm use 26 && nvim .
+  - window_name: front
+    panes:
+      - cd ./front && nvm use 26 && nvim .
+  - window_name: packages
+    panes:
+      - cd ./packages && nvm use 26 && nvim .

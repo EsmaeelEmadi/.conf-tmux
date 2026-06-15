@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# tmuxp-launcher — fuzzy-find and load tmuxp sessions
+set -euo pipefail
+
+CONFIG_DIR="${TMUXP_CONFIG_DIR:-$HOME/.config/tmuxp}"
+
+if [[ ! -d "$CONFIG_DIR" ]]; then
+  echo "tmuxp config directory not found: $CONFIG_DIR"
+  exit 1
+fi
+
+shopt -s nullglob
+configs=("$CONFIG_DIR"/*.{yaml,yml})
+shopt -u nullglob
+
+if [[ ${#configs[@]} -eq 0 ]]; then
+  echo "No tmuxp YAML configs found in $CONFIG_DIR"
+  exit 1
+fi
+
+# Build list of session names (basename without extension)
+names=()
+for f in "${configs[@]}"; do
+  base=$(basename "$f")
+  name="${base%.*}"
+  names+=("$name")
+done
+
+if command -v fzf &>/dev/null; then
+  selected=$(printf "%s\n" "${names[@]}" | fzf --prompt="tmuxp > ")
+else
+  echo "Available sessions:"
+  for i in "${!names[@]}"; do
+    printf "  %2d) %s\n" "$((i + 1))" "${names[$i]}"
+  done
+  read -r -p "Select session (number or name): " input
+  if [[ "$input" =~ ^[0-9]+$ ]]; then
+    selected="${names[$((input - 1))]}"
+  else
+    selected="$input"
+  fi
+fi
+
+[[ -z "$selected" ]] && exit 0
+
+tmuxp load -d "$selected" 2>/dev/null
+tmux switch-client -t "$selected" 2>/dev/null || tmux attach-session -t "$selected"
