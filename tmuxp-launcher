@@ -2,7 +2,7 @@
 # tmuxp-launcher — fuzzy-find and load tmuxp sessions
 set -euo pipefail
 
-CONFIG_DIR="${TMUXP_CONFIG_DIR:-$HOME/.config/tmuxp}"
+CONFIG_DIR="${TMUXP_CONFIG_DIR:-$HOME/.config/tmux/tmuxp}"
 
 if [[ ! -d "$CONFIG_DIR" ]]; then
   echo "tmuxp config directory not found: $CONFIG_DIR"
@@ -18,15 +18,23 @@ if [[ ${#configs[@]} -eq 0 ]]; then
   exit 1
 fi
 
-# Build list of session names (basename without extension)
+# Build list of display names and a name→path map
 names=()
+declare -A paths
+declare -A session_names
 for f in "${configs[@]}"; do
   base=$(basename "$f")
-  name="${base%.*}"
-  names+=("$name")
+  display_name="${base%.*}"
+  names+=("$display_name")
+  paths["$display_name"]="$f"
+  # Extract the actual session_name from the YAML
+  sname=$(grep -m1 '^session_name:' "$f" | awk '{print $2}')
+  session_names["$display_name"]="${sname:-$display_name}"
 done
 
-if command -v fzf &>/dev/null; then
+if command -v fzf-tmux &>/dev/null; then
+  selected=$(printf "%s\n" "${names[@]}" | fzf-tmux -p 55%,60% --reverse --prompt="tmuxp > ")
+elif command -v fzf &>/dev/null; then
   selected=$(printf "%s\n" "${names[@]}" | fzf --prompt="tmuxp > ")
 else
   echo "Available sessions:"
@@ -43,5 +51,5 @@ fi
 
 [[ -z "$selected" ]] && exit 0
 
-tmuxp load -d "$selected" 2>/dev/null
-tmux switch-client -t "$selected" 2>/dev/null || tmux attach-session -t "$selected"
+tmuxp load -d "${paths[$selected]}" 2>/dev/null
+tmux switch-client -t "${session_names[$selected]}" 2>/dev/null || tmux attach-session -t "${session_names[$selected]}"
